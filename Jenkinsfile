@@ -2,7 +2,8 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds')
+        DOCKERHUB_CREDENTIALS = credentials('a4ec09dc5f7048df86d71467aa14c432
+')
         IMAGE_NAME = "varma2004/my-static-site"
         CONTAINER_NAME = "my-static-site"
     }
