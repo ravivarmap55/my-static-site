@@ -2,64 +2,69 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('a4ec09dc5f7048df86d71467aa14c432
-')
-        IMAGE_NAME = "varma2004/my-static-site"
-        CONTAINER_NAME = "my-static-site"
+        IMAGE_NAME = 'my-static-site'
+        CONTAINER_NAME = 'my-static-site-container'
     }
 
     stages {
 
         stage('Checkout') {
             steps {
-                checkout scm
+                echo 'Cloning GitHub repository...'
+
+                git branch: 'main',
+                    url: 'https://github.com/ravivarmap55/my-static-site.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh """
-                    docker build \
-                        -t ${IMAGE_NAME}:${BUILD_NUMBER} \
-                        -t ${IMAGE_NAME}:latest .
-                """
+                echo 'Building Docker image...'
+
+                sh 'docker build -t ${IMAGE_NAME}:latest .'
             }
         }
 
-        stage('Push to Docker Hub') {
+        stage('Stop Old Container') {
             steps {
-                sh """
-                    echo "\$DOCKERHUB_CREDENTIALS_PSW" | docker login \
-                        -u "\$DOCKERHUB_CREDENTIALS_USR" \
-                        --password-stdin
+                echo 'Stopping old container...'
 
-                    docker push ${IMAGE_NAME}:${BUILD_NUMBER}
-                    docker push ${IMAGE_NAME}:latest
-                """
-            }
-        }
-
-        stage('Deploy Container') {
-            steps {
-                sh """
-                    docker pull ${IMAGE_NAME}:latest
-
+                sh '''
                     docker stop ${CONTAINER_NAME} || true
                     docker rm ${CONTAINER_NAME} || true
+                '''
+            }
+        }
 
+        stage('Run Docker Container') {
+            steps {
+                echo 'Starting new container...'
+
+                sh '''
                     docker run -d \
-                        -p 84:80 \
-                        --restart unless-stopped \
-                        --name ${CONTAINER_NAME} \
-                        ${IMAGE_NAME}:latest
-                """
+                    --name ${CONTAINER_NAME} \
+                    -p 8080:80 \
+                    ${IMAGE_NAME}:latest
+                '''
+            }
+        }
+
+        stage('Check Container') {
+            steps {
+                echo 'Checking Docker container...'
+
+                sh 'docker ps'
             }
         }
     }
 
     post {
-        always {
-            sh 'docker logout || true'
+        success {
+            echo 'Deployment successful!'
+        }
+
+        failure {
+            echo 'Deployment failed!'
         }
     }
 }
